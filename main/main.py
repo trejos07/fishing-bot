@@ -21,16 +21,13 @@ def get_color_mask(img, lower, upper):
 def distance(p1, p2):
 	return np.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
  
-def find_area(img, size):
+def find_area(img, min_size, max_size=None):
 	countours = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[0]
 	for contour in countours:
 		area = cv2.contourArea(contour)
-		if area > size:
+		if min_size < area and (max_size is None or area < max_size):
 			x, y, w, h = cv2.boundingRect(contour)
 			return Rect(x, y, w, h)
-
-def get_center(area):
-	return (int(area[0] + area[2] / 2), int(area[1] + area[3] / 2))
 
 class Rect():
 	def __init__(self, x, y, w, h):
@@ -63,7 +60,7 @@ def main ():
 
 	red_center_1 = None
 	red_center_2 = None
-	green_center_1 = None
+	green_center = None
 
 	while True:
 		scr = fisher.Screen_Shot(bar_left - 300, bar_top, 800, 100)
@@ -80,38 +77,38 @@ def main ():
 		red_mask = get_color_mask(hsvframe, (0, 150, 150), (10, 255, 255))
 		green_mask = get_color_mask(hsvframe, (40, 200, 150), (70, 255, 255))
 
-		red_area = find_area(red_mask, 900)
-		red_center_1 = red_area.center
-		frame_red = cv2.rectangle( frame, red_area.min, red_area.max, (0, 34, 255), 2 )
 
-		green_area = find_area(green_mask, (0, 500))
-		green_center_1 = green_area.center
-		frame_green = cv2.rectangle( frame, green_area.min, green_area.max, (0, 255, 0), 2 )
+		green_area = find_area(green_mask, 500)
+		red_area_1 = find_area(red_mask, 900)
+		red_area_2 = find_area(green_mask, 100, 600)
+
+		if red_area_2 is not None:
+			try:
+				green_center = green_area.center
+				red_center_1 = red_area_1.center
+				red_center_2 = red_area_2.center
 
 
-		for contour in countours:
-			area2 = cv2.contourArea(contour)
-			if 100 < area2 < 600:
-				x1, y1, w1, h1 = cv2.boundingRect(contour)
-				red_center_2 = (int(x1 + w1 / 2), int(y1 + h1 / 2))
+				frame_red = cv2.rectangle( frame, red_area_1.min, red_area_1.max, (0, 34, 255), 2 )
 
-				try:
-					distance = int(distance(red_center_1, red_center_2))
-					distance2 = int(distance(red_center_2, green_center_1))
-					
-					if not np.array_equal(frame_red, frame_green) and distance > 65:
-						if x_green > x_red2 and (x_red2 < x_red1):
-							mouse.press(Button.left)
-						elif x_green < x_red2 and (x_red2 > x_red1) and distance > 65:
-							mouse.release(Button.left)
-					else:
-						if distance2 <= 7 or x_red2 > x_green and x1 > x2:
-							mouse.release(Button.left)
-						elif x_red2 < x_green and distance2 > 7 and x1 < x2:
-							mouse.press(Button.left)
+				frame_green = cv2.rectangle( frame, green_area.min, green_area.max, (0, 255, 0), 2 )
 
-				except NameError:
-					pass
+				distance = int(distance(red_center_1, red_center_2))
+				distance2 = int(distance(red_center_2, green_center))
+				
+				if not np.array_equal(frame_red, frame_green) and distance > 65:
+					if green_center[0] > red_center_2[0] and (red_center_2[0] < red_center_1[0]):
+						mouse.press(Button.left)
+					elif green_center[0] < red_center_2[0] and (red_center_2[0] > red_center_1[0]) and distance > 65:
+						mouse.release(Button.left)
+				else:
+					if distance2 <= 7 or red_center_2[0] > green_center[0] and red_area_2.x > green_area.x:
+						mouse.release(Button.left)
+					elif red_center_2[0] < green_center[0] and distance2 > 7 and red_area_2.x < green_area.x:
+						mouse.press(Button.left)
+
+			except NameError:
+				pass
 
 		cv2.imshow("main", frame)
 		cv2.setWindowProperty("main", cv2.WND_PROP_TOPMOST, 1)
@@ -121,4 +118,4 @@ def main ():
 			fisher.dispose()
 			on_quit()
 			
-
+main()

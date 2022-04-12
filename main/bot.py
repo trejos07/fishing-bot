@@ -55,7 +55,7 @@ class Bot:
         return False
 
     # Compare to images return max value / location
-    def Template_Match(self, template, image, threshold, debug=False, debug_wait = True, debug_name = "debug"):
+    def Template_Match(self, template, image, threshold = 0.9, debug=False, debug_wait = True, debug_name = "debug"):
         result = cv2.matchTemplate(image, template, cv2.TM_CCOEFF_NORMED)
         _, max_val, _, max_loc = cv2.minMaxLoc(result)
 
@@ -76,9 +76,9 @@ class Bot:
 
         return (max_loc, max_val)
 
-    def Template_Match_Multiple(self, image, templates, threshold, debug=False):
+    def Template_Match_Multiple(self, templates, image, threshold, debug=False):
         for template in templates:
-            pt, val = self.Template_Match(image, template, threshold, debug, False, f"{template}_debug")
+            pt, val = self.Template_Match(template, image, threshold, debug, False, f"{template}_debug")
 
             if debug:
                 cv2.waitKey(0)
@@ -90,7 +90,7 @@ class Bot:
 
     def Load_Image(self, name):
         path = os.path.join(os.path.dirname(__file__), 'img', name)
-        cv2.imread(path, cv2.IMREAD_UNCHANGED)
+        return cv2.imread(path, cv2.IMREAD_UNCHANGED)
 
     def Click_Location(self, x, y, duration=0):
         pydirectinput.moveTo(x, y)
@@ -172,7 +172,7 @@ class Fisher(Bot):
         # self.Click_Location(800 + jitter,800 + jitter,.5)
 
     def is_bobber(self):
-        template = Load_Template('bobber.jpg')
+        template = self.Load_Image('bobber.jpg')
         max_loc, max_val = self.Template_Match(template, self.Screen_Shot())
         return max_val > .9, max_loc
 
