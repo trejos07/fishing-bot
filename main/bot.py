@@ -9,7 +9,6 @@ from pynput import mouse, keyboard
 import random
 import pydirectinput
 
-
 class Bot:
     def __init__(self):
         self.stc = mss.mss()
@@ -35,7 +34,7 @@ class Bot:
         return img
 
     def Click_Template(self, template_name : str, threshold : float, wait : float = .2, offset = None, debug = False) -> bool:
-        template = cv2.imread(, cv2.IMREAD_UNCHANGED)
+        template = self.Load_Image(template_name)
         _, w, h = template.shape[::-1]
 
         max_loc, max_val = self.Template_Match(template, self.Screen_Shot(), debug)
@@ -56,7 +55,7 @@ class Bot:
         return False
 
     # Compare to images return max value / location
-    def Template_Match(self, template, image, debug=False, debug_wait=True):
+    def Template_Match(self, template, image, threshold, debug=False, debug_wait = True, debug_name = "debug"):
         result = cv2.matchTemplate(image, template, cv2.TM_CCOEFF_NORMED)
         _, max_val, _, max_loc = cv2.minMaxLoc(result)
 
@@ -64,17 +63,34 @@ class Bot:
             _, w, h = template.shape[::-1]
             debug_result = image.copy()
 
-            loc = np.where( result >= self.sell_threshold)
+            loc = np.where( result >= threshold)
             for pt in zip(*loc[::-1]):
                 cv2.circle(debug_result, pt, 5, (0,255,255), 2 )
                 cv2.circle(debug_result, (int(pt[0] + w), int(pt[1] + h)), 5, (255,0,255), 3)
                 cv2.rectangle(debug_result, pt, (pt[0] + w, pt[1] + h), (0,0,255), 2)
 
-            cv2.imshow("Result_debug", debug_result)
+            cv2.imshow(debug_name, debug_result)
+            
             if debug_wait:
                 cv2.waitKey(0)
 
         return (max_loc, max_val)
+
+    def Template_Match_Multiple(self, image, templates, threshold, debug=False):
+        for template in templates:
+            pt, val = self.Template_Match(image, template, threshold, debug, False, f"{template}_debug")
+
+            if debug:
+                cv2.waitKey(0)
+
+            if val > threshold:
+                return pt, val, template
+        
+        return None, None, None
+
+    def Load_Image(self, name):
+        path = os.path.join(os.path.dirname(__file__), 'img', name)
+        cv2.imread(path, cv2.IMREAD_UNCHANGED)
 
     def Click_Location(self, x, y, duration=0):
         pydirectinput.moveTo(x, y)
@@ -156,14 +172,9 @@ class Fisher(Bot):
         # self.Click_Location(800 + jitter,800 + jitter,.5)
 
     def is_bobber(self):
-        img = self.Screen_Shot()
-        bobber_img = cv2.imread(os.path.join(self.img_path, 'bobber.jpg'), cv2.IMREAD_UNCHANGED)
-        result_try = cv2.matchTemplate(img, bobber_img, cv2.TM_CCOEFF_NORMED)
-        _, max_val, _, max_loc = cv2.minMaxLoc(result_try)
-        if max_val > .9:
-            return True
-        else:
-            return False
+        template = Load_Template('bobber.jpg')
+        max_loc, max_val = self.Template_Match(template, self.Screen_Shot())
+        return max_val > .9, max_loc
 
     def set_bobber(self):
         while True:
@@ -175,18 +186,13 @@ class Fisher(Bot):
             pydirectinput.click(800,800)
             time.sleep(.6)
             print("finding Bobber")
-            img = self.Screen_Shot()
-            bobber_img = cv2.imread(os.path.join(self.img_path, 'bobber.jpg'), cv2.IMREAD_UNCHANGED)
-            result_try = cv2.matchTemplate(img, bobber_img, cv2.TM_CCOEFF_NORMED)
-            _, max_val, _, max_loc = cv2.minMaxLoc(result_try)
-            if max_val > .9:
-                print("Found it!!")
-                new_max = max_loc
-                bar_top = new_max[1] - 20
-                bar_left = new_max[0]
-                return bar_left, bar_top
 
-            print(f"Current Max: {max_val} sleeping")
+            is_bobber, pt = self.is_bobber()
+            if is_bobber:
+                print("Found it!!")
+                return pt[1] - 20, pt[0]
+
+            print(f"Found: {is_bobber} sleeping")
 
     def close_caught_fish(self):
         return self.Click_Template("YellowX.jpg", .9)

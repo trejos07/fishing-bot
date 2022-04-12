@@ -19,6 +19,7 @@ def Template_Match( template, image, threshold, debug=False, debug_wait = True, 
                 cv2.rectangle(debug_result, pt, (pt[0] + w, pt[1] + h), (0,0,255), 2)
 
             cv2.imshow(debug_name, debug_result)
+            
             if debug_wait:
                 cv2.waitKey(0)
 
@@ -26,9 +27,6 @@ def Template_Match( template, image, threshold, debug=False, debug_wait = True, 
 
 def Template_Match_Multiple(image, templates, threshold, debug=False):
     for template in templates:
-
-        template_image = 
-
         pt, val = Template_Match(image, template, threshold, debug, False, f"{template}_debug")
 
         if debug:
