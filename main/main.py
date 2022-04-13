@@ -32,6 +32,28 @@ def find_area(img, min_size, max_size=None):
 	
 	return None
 
+def search_bar(fisher : Fisher):
+	frame = np.array(fisher.Screen_Shot())
+	hsvframe = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+	yellow_mask = get_color_mask(hsvframe, (20, 220, 220), (25, 255, 255))
+	bar_area = find_area(yellow_mask, min_size= 1500)
+
+	if bar_area is not None:
+		bar_area.expand(100, 50)
+
+	fisher.bar_area = bar_area
+	return bar_area != None
+
+def try_search_bar(fisher : Fisher):
+	fisher.mouse.move(800, 800)
+	fisher.mouse.press(Button.left)
+	time.sleep(1.5)
+	fisher.Try_Execute(lambda: search_bar(fisher), timeout= 20)
+	fisher.mouse.move(0, 0)
+	fisher.mouse.release(Button.left)
+
+
 class Rect():
 	def __init__(self, x, y, w, h):
 		self.x = x
@@ -51,6 +73,12 @@ class Rect():
 	def center(self):
 		return (self.x + int(self.w / 2), self.y + int(self.h / 2))
 
+	def expand(self, x, y):
+		self.x -= x
+		self.y -= y
+		self.w += 2 * x
+		self.h += 2 * y
+
 def init_window(window_name, size, position = (0, 0)):
 	blank = np.zeros((size[1], size[0], 3),'uint8')
 	cv2.imshow(window_name, blank)
@@ -62,14 +90,15 @@ def main ():
 	mouse = Controller()
 	fisher = Fisher()
 
+	try_search_bar(fisher)
+
+	if fisher.bar_area == None:
+		print("bar not found")
+		on_quit()
+
 	init_window("main", (800, 100), (-800, 0))
 	init_window("red", (800, 100), (-1600, 0))
 	init_window("green", (800, 100), (-1600, 130))
-
-	bar_left, bar_top = fisher.set_bobber()
-	print(f"bar_left: {bar_left} bar_top: {bar_top}")
-	# bar_left = 831
-	# bar_top = 882
 
 	fish_thread = threading.Thread(target=fisher.fish)
 	fish_thread.start()
@@ -80,7 +109,7 @@ def main ():
 
 	while True:
 
-		scr = fisher.Screen_Shot(bar_left - 300, bar_top, 800, 100)
+		scr = fisher.Screen_Shot(fisher.bar_area.x, fisher.bar_area.y, fisher.bar_area.w, fisher.bar_area.h)
 
 		frame = np.array(scr)
 		hsvframe = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -93,9 +122,12 @@ def main ():
 		
 		red_mask = get_color_mask(hsvframe, (0, 150, 150), (10, 255, 255))
 		green_mask = get_color_mask(hsvframe, (40, 200, 150), (70, 255, 255))
+		yellow_mask = get_color_mask(hsvframe, (34, 200, 220), (34, 255, 255))
+
 		# print("showing masks")
 		cv2.imshow("red", red_mask)
 		cv2.imshow("green", green_mask)
+		cv2.imshow("yellow", green_mask)
 
 		green_area = find_area(green_mask, 500)
 		red_area_1 = find_area(red_mask, 900)

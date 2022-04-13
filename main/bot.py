@@ -121,6 +121,7 @@ class Bot:
 class Fisher(Bot):
     def __init__(self):
         super().__init__()
+        self.bar_area = None
         self.bar_top = 0
         self.bar_left = 0
 
@@ -177,7 +178,7 @@ class Fisher(Bot):
         screenshot = self.Screen_Shot()
         template = self.Load_Image('bobber.jpg')
 
-        max_loc, max_val = self.Template_Match(template, screenshot, debug= True, debug_name="bobber", debug_wait=True)
+        max_loc, max_val = self.Template_Match(template, screenshot)
 
         return max_val > .9, max_loc
 
@@ -195,6 +196,8 @@ class Fisher(Bot):
             is_bobber, pt = self.is_bobber()
             if is_bobber:
                 print("Found it!!")
+                self.Click_Location(pt[0], pt[1])
+                time.sleep(5)
                 return pt[0], pt[1]
 
 
