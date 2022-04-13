@@ -23,11 +23,14 @@ def distance(p1, p2):
  
 def find_area(img, min_size, max_size=None):
 	countours = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[0]
+
 	for contour in countours:
 		area = cv2.contourArea(contour)
-		if min_size < area and (max_size is None or area < max_size):
+		if min_size < area and (max_size == None or area < max_size):
 			x, y, w, h = cv2.boundingRect(contour)
 			return Rect(x, y, w, h)
+	
+	return None
 
 class Rect():
 	def __init__(self, x, y, w, h):
@@ -48,13 +51,26 @@ class Rect():
 	def center(self):
 		return (self.x + int(self.w / 2), self.y + int(self.h / 2))
 
+def init_window(window_name, size, position = (0, 0)):
+	blank = np.zeros((size[1], size[0], 3),'uint8')
+	cv2.imshow(window_name, blank)
+	cv2.moveWindow(window_name, position[0], position[1])
+	cv2.setWindowProperty(window_name, cv2.WND_PROP_TOPMOST, 1)
 
 def main ():
 
 	mouse = Controller()
 	fisher = Fisher()
 
+	init_window("main", (800, 100), (-800, 0))
+	init_window("red", (800, 100), (-1600, 0))
+	init_window("green", (800, 100), (-1600, 130))
+
 	bar_left, bar_top = fisher.set_bobber()
+	print(f"bar_left: {bar_left} bar_top: {bar_top}")
+	# bar_left = 831
+	# bar_top = 882
+
 	fish_thread = threading.Thread(target=fisher.fish)
 	fish_thread.start()
 
@@ -63,6 +79,7 @@ def main ():
 	green_center = None
 
 	while True:
+
 		scr = fisher.Screen_Shot(bar_left - 300, bar_top, 800, 100)
 
 		frame = np.array(scr)
@@ -70,19 +87,24 @@ def main ():
 
 		# check if is in a valid state
 		if fisher.fish_count >= fisher.fish_limit:
+			print("fish count reached limit")
 			time.sleep(10)
 			continue
-
 		
 		red_mask = get_color_mask(hsvframe, (0, 150, 150), (10, 255, 255))
 		green_mask = get_color_mask(hsvframe, (40, 200, 150), (70, 255, 255))
-
+		# print("showing masks")
+		cv2.imshow("red", red_mask)
+		cv2.imshow("green", green_mask)
 
 		green_area = find_area(green_mask, 500)
 		red_area_1 = find_area(red_mask, 900)
 		red_area_2 = find_area(green_mask, 100, 600)
+		red_area_2 = None
 
-		if red_area_2 is not None:
+
+		if red_area_2 is not None: # and red_area_2 is not None and green_area is not None:
+			print(f"found something")
 			try:
 				green_center = green_area.center
 				red_center_1 = red_area_1.center
@@ -111,10 +133,9 @@ def main ():
 				pass
 
 		cv2.imshow("main", frame)
-		cv2.setWindowProperty("main", cv2.WND_PROP_TOPMOST, 1)
 
 		# Press q to quit program
-		if cv2.waitKey(1) & 0xFF == ord("q"):
+		if (cv2.waitKey(1) & 0xFF) == ord("q"):
 			fisher.dispose()
 			on_quit()
 			

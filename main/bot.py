@@ -56,6 +56,7 @@ class Bot:
 
     # Compare to images return max value / location
     def Template_Match(self, template, image, threshold = 0.9, debug=False, debug_wait = True, debug_name = "debug"):
+
         result = cv2.matchTemplate(image, template, cv2.TM_CCOEFF_NORMED)
         _, max_val, _, max_loc = cv2.minMaxLoc(result)
 
@@ -66,7 +67,7 @@ class Bot:
             loc = np.where( result >= threshold)
             for pt in zip(*loc[::-1]):
                 cv2.circle(debug_result, pt, 5, (0,255,255), 2 )
-                cv2.circle(debug_result, (int(pt[0] + w), int(pt[1] + h)), 5, (255,0,255), 3)
+                cv2.circle(debug_result, (int(pt[0] + w / 2), int(pt[1] + h / 2)), 5, (255,0,255), 3)
                 cv2.rectangle(debug_result, pt, (pt[0] + w, pt[1] + h), (0,0,255), 2)
 
             cv2.imshow(debug_name, debug_result)
@@ -89,7 +90,7 @@ class Bot:
         return None, None, None
 
     def Load_Image(self, name):
-        path = os.path.join(os.path.dirname(__file__), 'img', name)
+        path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'img', name)
         return cv2.imread(path, cv2.IMREAD_UNCHANGED)
 
     def Click_Location(self, x, y, duration=0):
@@ -172,8 +173,12 @@ class Fisher(Bot):
         # self.Click_Location(800 + jitter,800 + jitter,.5)
 
     def is_bobber(self):
+
+        screenshot = self.Screen_Shot()
         template = self.Load_Image('bobber.jpg')
-        max_loc, max_val = self.Template_Match(template, self.Screen_Shot())
+
+        max_loc, max_val = self.Template_Match(template, screenshot, debug= True, debug_name="bobber", debug_wait=True)
+
         return max_val > .9, max_loc
 
     def set_bobber(self):
@@ -190,9 +195,8 @@ class Fisher(Bot):
             is_bobber, pt = self.is_bobber()
             if is_bobber:
                 print("Found it!!")
-                return pt[1] - 20, pt[0]
+                return pt[0], pt[1]
 
-            print(f"Found: {is_bobber} sleeping")
 
     def close_caught_fish(self):
         return self.Click_Template("YellowX.jpg", .9)
@@ -237,8 +241,8 @@ class Fisher(Bot):
         
 
 # Test our classes and functions
-if __name__ == "__main__":
-    print("Unless your testing run main.py")
-    fisher = Fisher()
-    time.sleep(1)
-    fisher.Sell_Fish()
+# if __name__ == "__main__":
+#     print("Unless your testing run main.py")
+#     fisher = Fisher()
+#     time.sleep(1)
+#     fisher.Sell_Fish()
