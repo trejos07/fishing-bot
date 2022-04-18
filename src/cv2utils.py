@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from rect import Rect
+from framework.geometry.rect import Rect
 
 def init_window(window_name, size, position = (0, 0)):
 	blank = np.zeros((size[1], size[0], 3),'uint8')
@@ -23,3 +23,6 @@ def find_area(img, min_size, max_size=None):
 			return Rect(x, y, w, h)
 	
 	return None
+
+def distance(p1, p2):
+	return np.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
