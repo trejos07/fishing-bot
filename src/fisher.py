@@ -25,6 +25,8 @@ class Fisher(BotBase):
         
         # Adding spot to update sell thresholds!
         self.sell_threshold = .6
+
+        print("Fisher initialized, trying to find bar")
         self.try_search_bar()
 
     def try_search_bar(self):
@@ -63,6 +65,10 @@ class Fisher(BotBase):
 
         screenshot = self.screenshot()
         template = self.load_image('bobber.jpg')
+
+        if template is None:
+            print("Could not load bobber template")
+            return False
 
         max_loc, max_val = self.template_match(template, screenshot)
 
@@ -116,7 +122,7 @@ class FishingBehavior(Behavior):
     def update(self):
         if self.fisher.close_caught_fish(): # We caught a fish
             self.fisher.fish_count += 1
-            print(f"Fish Count: {self.fish_count}")
+            print(f"Fish Count: {self.fisher.fish_count}")
 
         if self.fisher.is_bobber():
             print("FISH on SLEEPING!")
@@ -136,7 +142,7 @@ class FishingBehavior(Behavior):
 class FishingBarBehavior(Behavior):
     def __init__(self, fisher, run_new_thread=False):
         super().__init__(run_new_thread)
-        self.fisher = fisher
+        self.fisher : Fisher = fisher
     
     def awake(self):
         cv2utils.init_window("main", (800, 100), (-800, 0))
@@ -149,7 +155,7 @@ class FishingBarBehavior(Behavior):
         cv2utils.destroy_window("green")
 
     def update(self):
-        scr = self.fisher.Screen_Shot(self.fisher.bar_area.x, self.fisher.bar_area.y, self.fisher.bar_area.w, self.fisher.bar_area.h)
+        scr = self.fisher.screenshot(self.fisher.bar_area.x, self.fisher.bar_area.y, self.fisher.bar_area.w, self.fisher.bar_area.h)
 
         frame = np.array(scr)
         hsvframe = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)

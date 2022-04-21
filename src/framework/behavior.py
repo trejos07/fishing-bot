@@ -1,3 +1,4 @@
+import time
 from framework import AppBase
 from framework import EnhancedThread
 
@@ -18,7 +19,7 @@ class Behavior():
     def run_on_thread(self):
         while self.thread and not self.thread.stopped:
             self.update()
-            self.thread.sleep(0.01)
+            time.sleep(0.01)
 
     def update(self):
         pass

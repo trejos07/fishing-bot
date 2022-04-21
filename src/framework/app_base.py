@@ -1,3 +1,4 @@
+import os
 import sys
 from cv2 import cv2
 
@@ -5,6 +6,7 @@ from cv2 import cv2
 class AppBase():
 
 	to_update = []
+	root = os.path.dirname(sys.path[0])
 
 	@classmethod
 	def start(cls):

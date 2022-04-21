@@ -9,6 +9,7 @@ from typing import Callable, List
 from pynput import mouse, keyboard
 
 from framework.behavior import Behavior
+from framework.app_base import AppBase
 
 class BotBase():
     def __init__(self):
@@ -34,6 +35,11 @@ class BotBase():
 
     def click_template(self, template_name : str, threshold : float, wait : float = .2, offset = None, debug = False) -> bool:
         template = self.load_image(template_name)
+
+        if template is None:
+            print(f"Template {template_name} not found")
+            return False
+
         _, w, h = template.shape[::-1]
 
         max_loc, max_val = self.template_match(template, self.screenshot(), debug)
@@ -88,8 +94,10 @@ class BotBase():
         
         return None, None, None
 
+# Loading image: YellowX.jpg from: d:\Programing\python\fishing-bot\src\framework\img\YellowX.jpg
     def load_image(self, name):
-        path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'img', name)
+        path = os.path.join(AppBase.root, 'img', name)
+        print(f"Loading image: {name} from: {path}")
         return cv2.imread(path, cv2.IMREAD_UNCHANGED)
 
     def click_location(self, x, y, duration = 0, button = mouse.Button.left):

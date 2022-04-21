@@ -1,9 +1,12 @@
+import os
 from framework.app_base import AppBase
 from fisher import Fisher, FishingBarBehavior, FishingBehavior
 
 class App(AppBase):
+
 	@classmethod 
 	def on_start(cls):
+		print("app started")
 		cls.fisher = Fisher()
 
 		if cls.fisher.bar_area == None:
@@ -24,6 +27,3 @@ class App(AppBase):
 	def mainloop(cls):	
 		print("mainloop")
 		super().mainloop()
-
-
-App.start()
