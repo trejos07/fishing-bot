@@ -17,6 +17,7 @@ class BotBase():
         self.mouse = mouse.Controller()
         self.keyboard = keyboard.Controller()
         self.behaviors : List[Behavior] = []
+        self.cached_images = {}
 
         self.screenshot() # Initialize screen shot in the main thread to work in any thread
 
@@ -96,9 +97,17 @@ class BotBase():
 
 # Loading image: YellowX.jpg from: d:\Programing\python\fishing-bot\src\framework\img\YellowX.jpg
     def load_image(self, name):
+
+        if name in self.cached_images:
+            return self.cached_images[name]
+
         path = os.path.join(AppBase.root, 'img', name)
+        
         print(f"Loading image: {name} from: {path}")
-        return cv2.imread(path, cv2.IMREAD_UNCHANGED)
+        image = cv2.imread(path, cv2.IMREAD_UNCHANGED)
+        self.cached_images[name] = image
+
+        return image
 
     def click_location(self, x, y, duration = 0, button = mouse.Button.left):
         self.mouse.position = (x, y)

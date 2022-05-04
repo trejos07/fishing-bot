@@ -22,3 +22,6 @@ class Rect():
 		self.y -= y
 		self.w += 2 * x
 		self.h += 2 * y
+
+	def __str__(self):
+		return f"{{x: {self.x}, y: {self.y}, w: {self.w}, h: {self.h}}}"

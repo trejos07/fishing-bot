@@ -19,7 +19,7 @@ class AppBase():
 			for update in cls.to_update:
 				update()
 
-			if (cv2.waitKey(1) & 0xFF) == ord("q"):
+			if (cv2.waitKey(30) & 0xFF) == ord("q"):
 				cls.quit()
 
 	@classmethod
