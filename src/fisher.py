@@ -222,6 +222,19 @@ class FishingBarBehavior(Behavior):
         # cv2.imshow("main", frame_copy)
         # time.sleep(.2)
         # return
+        hook = Rect.combine_rect_list(hook_areas)
+        hook_center = hook.center
+        
+
+        if green_areas is not None:
+            for green_bar in green_areas:
+
+                if not green_bar:
+                    continue
+
+                green_center = green_bar.center
+                
+
 
         red_bar = red_areas[-1] if red_areas else None
         red_center = red_bar.center if red_areas else None
@@ -229,42 +242,38 @@ class FishingBarBehavior(Behavior):
         green_bar = green_areas[-1] if green_areas else None
         green_center = green_bar.center if green_areas else None
 
-        for hook in hook_areas:
-            hook_center = hook.center
+        frame_red = cv2.rectangle( frame, red_bar.min, red_bar.max, (0, 0, 0), 2 ) if red_areas else frame
+        frame_green = cv2.rectangle( frame, green_bar.min, green_bar.max, (0, 0, 0), 2 ) if green_areas else frame
 
-            frame_red = cv2.rectangle( frame, red_bar.min, red_bar.max, (0, 0, 0), 2 ) if red_areas else frame
+        distance = int(cv2utils.distance(hook_center, red_center)) if red_center else 0
+        distance2 = int(cv2utils.distance(hook_center, green_center)) if green_center else 0
+        
+        if not np.array_equal(frame_red, frame_green) and distance > 65:
+            if green_center.x > hook_center.x and (hook_center.x < red_center.x):
+                cv2.putText(frame_copy,"red: " + str(distance),(10, 40),cv2.FONT_HERSHEY_SIMPLEX,0.7,(0, 0, 255),)
+                if not self.mousePressed:
+                    print("press mouse button =")
+                    self.mousePressed = True
+                    self.fisher.mouse.press(mouse.Button.left)
+            elif green_center.x < hook_center.x and (hook_center.x > red_center.x) and distance > 65:
+                cv2.putText( frame_copy, "red: " + str(distance), (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255))
 
-            frame_green = cv2.rectangle( frame, green_bar.min, green_bar.max, (0, 0, 0), 2 ) if green_areas else frame
-
-            distance = int(cv2utils.distance(hook_center, red_center)) if red_center else 0
-            distance2 = int(cv2utils.distance(hook_center, green_center)) if green_center else 0
-            
-            if not np.array_equal(frame_red, frame_green) and distance > 65:
-                if green_center.x > hook_center.x and (hook_center.x < red_center.x):
-                    cv2.putText(frame_copy,"red: " + str(distance),(10, 40),cv2.FONT_HERSHEY_SIMPLEX,0.7,(0, 0, 255),)
-                    if not self.mousePressed:
-                        print("press mouse button =")
-                        self.mousePressed = True
-                        self.fisher.mouse.press(mouse.Button.left)
-                elif green_center.x < hook_center.x and (hook_center.x > red_center.x) and distance > 65:
-                    cv2.putText( frame_copy, "red: " + str(distance), (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255))
-
-                    if self.mousePressed:
-                        print("release mouse button =")
-                        self.mousePressed = False
-                        self.fisher.mouse.release(mouse.Button.left)
-            else:
-                cv2.putText(frame_copy, "green: " + str(distance2), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0))
-                if distance2 <= 7 or hook_center.x > green_center.x and hook.x > green_bar.x:
-                    if self.mousePressed:
-                        print("release mouse button")
-                        self.mousePressed = False
-                        self.fisher.mouse.release(mouse.Button.left)
-                elif hook_center.x < green_center.x and distance2 > 7 and hook.x < green_bar.x:
-                    if not self.mousePressed:
-                        print("press mouse button")
-                        self.mousePressed = True
-                        self.fisher.mouse.press(mouse.Button.left)
+                if self.mousePressed:
+                    print("release mouse button =")
+                    self.mousePressed = False
+                    self.fisher.mouse.release(mouse.Button.left)
+        else:
+            cv2.putText(frame_copy, "green: " + str(distance2), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0))
+            if distance2 <= 7 or hook_center.x > green_center.x and hook.x > green_bar.x:
+                if self.mousePressed:
+                    print("release mouse button")
+                    self.mousePressed = False
+                    self.fisher.mouse.release(mouse.Button.left)
+            elif hook_center.x < green_center.x and distance2 > 7 and hook.x < green_bar.x:
+                if not self.mousePressed:
+                    print("press mouse button")
+                    self.mousePressed = True
+                    self.fisher.mouse.press(mouse.Button.left)
 
         cv2.imshow("main", frame_copy)
 
