@@ -51,7 +51,7 @@ class Fisher(BotBase):
             return False
 
         self.bar_area = found_areas[0]
-        self.bar_area.expand(40, 15)
+        self.bar_area.expand(50, 16)
         self.bar_area.y -= 4
 
         return True
@@ -129,13 +129,14 @@ class FishingBehavior(Behavior):
         self.fisher = fisher
 
     def update(self):
+
+        if self.fisher.fish_on_line and self.fisher.is_bobber():
+            return
+
         if self.fisher.close_caught_fish(): # We caught a fish
             self.fish_on_line = False
             self.fisher.fish_count += 1
             print(f"Fish Count: {self.fisher.fish_count}")
-
-        if self.fisher.fish_on_line and self.fisher.is_bobber():
-            return
 
         if self.fisher.fish_count >= self.fisher.fish_limit:
             self.Sell_Fish()
@@ -153,6 +154,7 @@ class FishingBarBehavior(Behavior):
     def __init__(self, fisher : Fisher, run_new_thread : bool = False):
         super().__init__(run_new_thread)
         self.fisher : Fisher = fisher
+        self.mousePressed = False
     
     def awake(self):
         cv2utils.init_window("main", (800, 100), (-800, 0))
@@ -199,52 +201,72 @@ class FishingBarBehavior(Behavior):
         cv2.imshow("red", red_mask)
         cv2.imshow("green", green_mask)
 
-        hook_areas = cv2utils.find_area(red_mask, 100, 600)
+        hook_areas = cv2utils.find_area(red_mask, 100, 700)
         green_areas = cv2utils.find_area(green_mask, 500)
         red_areas = cv2utils.find_area(red_mask, 900)
 
+        #make a frame cope to debug the areas
+        frame_copy = frame.copy()
 
         for g_area in green_areas:
-            self.draw_rect(frame, g_area, "green", (0, 255, 0))
+            self.draw_rect(frame_copy, g_area, "green", (0, 255, 0))
         for r_area in red_areas:
-            self.draw_rect(frame, r_area, "red", (0, 0, 255))
+            self.draw_rect(frame_copy, r_area, "red", (0, 0, 255))
         for h_area in hook_areas:
-            self.draw_rect(frame, h_area, "hook", (255, 0, 255))
+            self.draw_rect(frame_copy, h_area, "hook", (255, 0, 255))
 
-        cv2.imshow("main", frame)
+        if hook_areas is None:
+            print("No hook areas")
+            return
+
+        # cv2.imshow("main", frame_copy)
         # time.sleep(.2)
-        return
+        # return
 
-        if hook_areas is not None: # and red_area_2 is not None and green_area is not None:
-            print(f"found something")
-            try:
-                green_center = green_areas.center
-                red_center_1 = red_areas.center
-                red_center_2 = hook_areas.center
+        red_bar = red_areas[-1] if red_areas else None
+        red_center = red_bar.center if red_areas else None
 
+        green_bar = green_areas[-1] if green_areas else None
+        green_center = green_bar.center if green_areas else None
 
-                frame_red = cv2.rectangle( frame, red_areas.min, red_areas.max, (0, 34, 255), 2 )
+        for hook in hook_areas:
+            hook_center = hook.center
 
-                frame_green = cv2.rectangle( frame, green_areas.min, green_areas.max, (0, 255, 0), 2 )
+            frame_red = cv2.rectangle( frame, red_bar.min, red_bar.max, (0, 0, 0), 2 ) if red_areas else frame
 
-                distance = int(cv2utils.distance(red_center_1, red_center_2))
-                distance2 = int(cv2utils.distance(red_center_2, green_center))
-                
-                if not np.array_equal(frame_red, frame_green) and distance > 65:
-                    if green_center[0] > red_center_2[0] and (red_center_2[0] < red_center_1[0]):
+            frame_green = cv2.rectangle( frame, green_bar.min, green_bar.max, (0, 0, 0), 2 ) if green_areas else frame
+
+            distance = int(cv2utils.distance(hook_center, red_center)) if red_center else 0
+            distance2 = int(cv2utils.distance(hook_center, green_center)) if green_center else 0
+            
+            if not np.array_equal(frame_red, frame_green) and distance > 65:
+                if green_center.x > hook_center.x and (hook_center.x < red_center.x):
+                    cv2.putText(frame_copy,"red: " + str(distance),(10, 40),cv2.FONT_HERSHEY_SIMPLEX,0.7,(0, 0, 255),)
+                    if not self.mousePressed:
+                        print("press mouse button =")
+                        self.mousePressed = True
                         self.fisher.mouse.press(mouse.Button.left)
-                    elif green_center[0] < red_center_2[0] and (red_center_2[0] > red_center_1[0]) and distance > 65:
+                elif green_center.x < hook_center.x and (hook_center.x > red_center.x) and distance > 65:
+                    cv2.putText( frame_copy, "red: " + str(distance), (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255))
+
+                    if self.mousePressed:
+                        print("release mouse button =")
+                        self.mousePressed = False
                         self.fisher.mouse.release(mouse.Button.left)
-                else:
-                    if distance2 <= 7 or red_center_2[0] > green_center[0] and hook_areas.x > green_areas.x:
+            else:
+                cv2.putText(frame_copy, "green: " + str(distance2), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0))
+                if distance2 <= 7 or hook_center.x > green_center.x and hook.x > green_bar.x:
+                    if self.mousePressed:
+                        print("release mouse button")
+                        self.mousePressed = False
                         self.fisher.mouse.release(mouse.Button.left)
-                    elif red_center_2[0] < green_center[0] and distance2 > 7 and hook_areas.x < green_areas.x:
+                elif hook_center.x < green_center.x and distance2 > 7 and hook.x < green_bar.x:
+                    if not self.mousePressed:
+                        print("press mouse button")
+                        self.mousePressed = True
                         self.fisher.mouse.press(mouse.Button.left)
 
-            except NameError:
-                pass
-
-        cv2.imshow("main", frame)
+        cv2.imshow("main", frame_copy)
 
     def update(self):
         self.new_update()
@@ -287,7 +309,7 @@ class FishingBarBehavior(Behavior):
                 y_red1 = int(y1 + h1 / 2)
                 cv2.circle(frame, (x_red1, y_red1), 3, (0, 0, 255), -1)
                 try:
-                    cv2.line(frame, (x_red2, y_red2), (x_red1, y_red1), (0, 0, 255), 2)
+                    cv2.line(frame, (x_hook, y_hook), (x_red1, y_red1), (0, 0, 255), 2)
                 except NameError:
                     pass
                 cv2.putText(frame, "red bar count: " + str(len(frame_red_bar) - 99), (10, 72), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255))
@@ -310,7 +332,7 @@ class FishingBarBehavior(Behavior):
                 cv2.putText(frame, "green bar count: " + str(len(countours2)), (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0))
 
                 try:
-                    cv2.line(frame, (x_red2, y_red2), (x_green, y_green), (0, 255, 0), 2)
+                    cv2.line(frame, (x_hook, y_hook), (x_green, y_green), (0, 255, 0), 2)
 
                 except NameError:
                     pass
@@ -320,24 +342,25 @@ class FishingBarBehavior(Behavior):
             if 600 > area2 > 100:
                 x1, y1, w1, h1 = cv2.boundingRect(contour)
                 frame_red = cv2.rectangle(frame, (x1, y1), (x1 + w1, y1 + h1), (0, 34, 255), 2)
-                x_red2 = int(x1 + w1 / 2)
-                y_red2 = int(y1 + h1 / 2)
-                cv2.circle(frame, (x_red2, y_red2), 3, (0, 34, 255), -1)
+                x_hook = int(x1 + w1 / 2)
+                y_hook = int(y1 + h1 / 2)
+                cv2.circle(frame, (x_hook, y_hook), 3, (0, 34, 255), -1)
                 cv2.putText(frame, "hook", (x1 + w1, y1 + h1), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 34, 255))
+
                 try:
                     print("check distance")
-                    distance = int(np.sqrt((x_red2 - x_red1) ** 2 + (y_red2 - y_red1) ** 2))
-                    distance2 = int(np.sqrt((x_red2 - x_green) ** 2 + (y_red2 - y_green) ** 2))
+                    distance = int(np.sqrt((x_hook - x_red1) ** 2 + (y_hook - y_red1) ** 2))
+                    distance2 = int(np.sqrt((x_hook - x_green) ** 2 + (y_hook - y_green) ** 2))
                     if not np.array_equal(frame_red, frame_green) and distance > 65:
                         cv2.putText(frame,"red: " + str(distance),(10, 40),cv2.FONT_HERSHEY_SIMPLEX,0.7,(0, 0, 255),)
-                        if x_green > x_red2 and (x_red2 < x_red1):
-                            if x_green > x_red2:
+                        if x_green > x_hook and (x_hook < x_red1):
+                            if x_green > x_hook:
                                 cv2.putText( frame, "red: " + str(distance), (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255))
                             print("try click")
                             self.fisher.mouse.press(mouse.Button.left)
                             print("press click")
 
-                        elif x_green < x_red2 and (x_red2 > x_red1) and distance > 65:
+                        elif x_green < x_hook and (x_hook > x_red1) and distance > 65:
                             if x_green < x_red1:
                                 cv2.putText( frame, "red: " + str(distance), (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255))
                             print("try click")
@@ -346,12 +369,12 @@ class FishingBarBehavior(Behavior):
 
                     else:
                         cv2.putText(frame, "green: " + str(distance2), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0))
-                        if distance2 <= 7 or x_red2 > x_green and x1 > x2:
+                        if distance2 <= 7 or x_hook > x_green and x1 > x2:
                             print("try click")
                             self.fisher.mouse.release(mouse.Button.left)
                             print("release click")
 
-                        elif x_red2 < x_green and distance2 > 7 and x1 < x2:
+                        elif x_hook < x_green and distance2 > 7 and x1 < x2:
                             print("try click")                            
                             self.fisher.mouse.press(mouse.Button.left)
                             print("press click")
@@ -377,7 +400,7 @@ class FishingBarBehavior(Behavior):
                 cv2.putText(frame, "green bar count: " + str(len(countours2)), (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0))
 
                 try:
-                    cv2.line(frame, (x_red2, y_red2), (x_green, y_green), (0, 255, 0), 2)
+                    cv2.line(frame, (x_hook, y_hook), (x_green, y_green), (0, 255, 0), 2)
 
                 except NameError:
                     pass
