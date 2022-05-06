@@ -1,4 +1,5 @@
 from cmath import rect
+import time
 import cv2
 import numpy as np
 from framework.geometry.rect import Rect
@@ -28,5 +29,20 @@ def find_area(img, min_size, max_size = None, count = 0):
 
 	return rect_areas
 
-def distance(p1, p2):
-	return np.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
+
+rate_limit_counters = {}
+def rate_limit(key: str, rate: float) -> bool:
+	if key not in rate_limit_counters:
+		rate_limit_counters[key] = time.time()
+		return True
+	
+	if time.time() - rate_limit_counters[key] > rate:
+		rate_limit_counters[key] = time.time()
+		return True
+	
+	return False
+	
+def print_rate_limit(msg: str, rate: float):
+	if rate_limit(msg, rate):
+		print(msg)
+

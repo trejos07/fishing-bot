@@ -14,9 +14,9 @@ class Vector2():
 	def __truediv__(self, other):
 		return Vector2(self.x / other, self.y / other)
 	def __str__(self):
-		return "({}, {})".format(self.x, self.y)
+		return f"({self.x}, {self.y})"
 	def __repr__(self):
-		return "Vector2({}, {})".format(self.x, self.y)
+		return f"Vector2({self.x}, {self.y})"
 	def __eq__(self, other):
 		return self.x == other.x and self.y == other.y
 	def __ne__(self, other):
@@ -68,6 +68,9 @@ class Vector2():
 	def magnitude(self):
 		return np.sqrt(self.x**2 + self.y**2)
 
+	def as_tuple(self):
+		return (self.x, self.y)
+
 class Rect():
 	def __init__(self, x, y, w, h):
 		self.position = Vector2(x, y)
@@ -91,7 +94,7 @@ class Rect():
 	
 	@property
 	def center(self):
-		return Vector2(self.x + int(self.w / 2), self.y + int(self.h / 2))
+		return Vector2(self.position.x + int(self.size.x / 2), self.position.y + int(self.size.y / 2))
 
 	def expand(self, x, y):
 		self.position -= Vector2(x, y)
@@ -104,7 +107,7 @@ class Rect():
 
 	@classmethod
 	def combine_rect_list(cls, rect_list : list):
-		if len(rect_list) == 0:
+		if rect_list is None or len(rect_list) == 0:
 			return None
 
 		rect_min = min([r.min for r in rect_list])
@@ -113,4 +116,4 @@ class Rect():
 		return Rect(*rect_min, *rect_max)
 
 	def __str__(self):
-		return f"{{x: {self.x}, y: {self.y}, w: {self.w}, h: {self.h}}}"
+		return f"{{position: {self.position}, size: {self.size}}}"

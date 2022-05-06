@@ -52,7 +52,7 @@ class Fisher(BotBase):
 
         self.bar_area = found_areas[0]
         self.bar_area.expand(50, 16)
-        self.bar_area.y -= 4
+        self.bar_area.position.y -= 4
 
         return True
 
@@ -154,7 +154,8 @@ class FishingBarBehavior(Behavior):
     def __init__(self, fisher : Fisher, run_new_thread : bool = False):
         super().__init__(run_new_thread)
         self.fisher : Fisher = fisher
-        self.mousePressed = False
+        self.mousePressed = None
+        self.last_bar = None
     
     def awake(self):
         cv2utils.init_window("main", (800, 100), (-800, 0))
@@ -166,16 +167,8 @@ class FishingBarBehavior(Behavior):
         cv2utils.destroy_window("red")
         cv2utils.destroy_window("green")
 
-    def draw_rect(self, image, rect : Rect, name : str, color : tuple = (0,0,0)):
-        if rect is None:
-            return
-
-        cv2.rectangle(image, rect.min, rect.max, color, 2)
-        cv2.circle(image, rect.center, 3, color, 2)
-        cv2.putText(image, name, rect.max, cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
-
-    def new_update(self):
-        scr = self.fisher.screenshot(self.fisher.bar_area.x, self.fisher.bar_area.y, self.fisher.bar_area.w, self.fisher.bar_area.h)
+    def update(self):
+        scr = self.fisher.screenshot(*self.fisher.bar_area.position, *self.fisher.bar_area.size)
 
         frame = np.array(scr)
         hsvframe = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -205,224 +198,71 @@ class FishingBarBehavior(Behavior):
         green_areas = cv2utils.find_area(green_mask, 500)
         red_areas = cv2utils.find_area(red_mask, 900)
 
-        #make a frame cope to debug the areas
-        frame_copy = frame.copy()
+        # for g_area in green_areas:
+        #     self.draw_rect(frame, g_area, "green", (0, 255, 0))
+        # for r_area in red_areas:
+        #     self.draw_rect(frame, r_area, "red", (0, 0, 255))
+        # for h_area in hook_areas:
+        #     self.draw_rect(frame, h_area, "hook", (255, 0, 255))
 
-        for g_area in green_areas:
-            self.draw_rect(frame_copy, g_area, "green", (0, 255, 0))
-        for r_area in red_areas:
-            self.draw_rect(frame_copy, r_area, "red", (0, 0, 255))
-        for h_area in hook_areas:
-            self.draw_rect(frame_copy, h_area, "hook", (255, 0, 255))
+        hook = Rect.combine_rect_list(hook_areas) if hook_areas else None
+        green_bar = Rect.combine_rect_list(green_areas) if green_areas else None
+        red_bar = Rect.combine_rect_list(red_areas) if red_areas else None
 
-        if hook_areas is None:
-            print("No hook areas")
-            return
+        self.draw_rect(frame, hook, "hook", (255, 0, 255))
+        self.draw_rect(frame, red_bar, "red", (0, 0, 255))
+        self.draw_rect(frame, green_bar, "green", (0, 255, 0))
 
-        # cv2.imshow("main", frame_copy)
-        # time.sleep(.2)
-        # return
-        hook = Rect.combine_rect_list(hook_areas)
-        hook_center = hook.center
-        
-
-        if green_areas is not None:
-            for green_bar in green_areas:
-
-                if not green_bar:
-                    continue
-
-                green_center = green_bar.center
-                
-
-
-        red_bar = red_areas[-1] if red_areas else None
-        red_center = red_bar.center if red_areas else None
-
-        green_bar = green_areas[-1] if green_areas else None
-        green_center = green_bar.center if green_areas else None
-
-        frame_red = cv2.rectangle( frame, red_bar.min, red_bar.max, (0, 0, 0), 2 ) if red_areas else frame
-        frame_green = cv2.rectangle( frame, green_bar.min, green_bar.max, (0, 0, 0), 2 ) if green_areas else frame
-
-        distance = int(cv2utils.distance(hook_center, red_center)) if red_center else 0
-        distance2 = int(cv2utils.distance(hook_center, green_center)) if green_center else 0
-        
-        if not np.array_equal(frame_red, frame_green) and distance > 65:
-            if green_center.x > hook_center.x and (hook_center.x < red_center.x):
-                cv2.putText(frame_copy,"red: " + str(distance),(10, 40),cv2.FONT_HERSHEY_SIMPLEX,0.7,(0, 0, 255),)
-                if not self.mousePressed:
-                    print("press mouse button =")
-                    self.mousePressed = True
-                    self.fisher.mouse.press(mouse.Button.left)
-            elif green_center.x < hook_center.x and (hook_center.x > red_center.x) and distance > 65:
-                cv2.putText( frame_copy, "red: " + str(distance), (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255))
-
-                if self.mousePressed:
-                    print("release mouse button =")
-                    self.mousePressed = False
-                    self.fisher.mouse.release(mouse.Button.left)
-        else:
-            cv2.putText(frame_copy, "green: " + str(distance2), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0))
-            if distance2 <= 7 or hook_center.x > green_center.x and hook.x > green_bar.x:
-                if self.mousePressed:
-                    print("release mouse button")
-                    self.mousePressed = False
-                    self.fisher.mouse.release(mouse.Button.left)
-            elif hook_center.x < green_center.x and distance2 > 7 and hook.x < green_bar.x:
-                if not self.mousePressed:
-                    print("press mouse button")
-                    self.mousePressed = True
-                    self.fisher.mouse.press(mouse.Button.left)
-
-        cv2.imshow("main", frame_copy)
-
-    def update(self):
-        self.new_update()
-
-    def old_update(self):
-        scr = self.fisher.screenshot(self.fisher.bar_area.x, self.fisher.bar_area.y, self.fisher.bar_area.w, self.fisher.bar_area.h)
-
-        frame = np.array(scr)
-        hsvframe = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-
-        if not self.fisher.fish_on_line:
-            cv2.imshow("main", frame)
-            return
-
-        # check if is in a valid state
-        if self.fisher.fish_count >= self.fisher.fish_limit:
-            print("fish count reached limit")
-            time.sleep(10)
-            return
-
-        red_mask = cv2utils.get_color_mask(hsvframe, (0, 150, 150), (10, 255, 255))
-        green_mask = cv2utils.get_color_mask(hsvframe, (40, 200, 150), (70, 255, 255))
-
-        kernal = np.ones((5, 5), "uint8")
-        red_mask = cv2.dilate(red_mask, kernal)
-        green_mask = cv2.dilate(green_mask, kernal)
-
-        cv2.imshow("red", red_mask)
-        cv2.imshow("green", green_mask)
-
-        countours = cv2.findContours(red_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[0]
-
-        for contour in countours:
-            area = cv2.contourArea(contour)
-            if area > 900:
-                x1, y1, w1, h1 = cv2.boundingRect(contour)
-                frame_red_bar = cv2.rectangle(frame, (x1, y1), (x1 + w1, y1 + h1), (0, 0, 255), 2)
-                cv2.putText(frame,"red bar",(x1 + w1, y1 + h1),cv2.FONT_HERSHEY_SIMPLEX,0.7,(0, 0, 255))
-                x_red1 = int(x1 + w1 / 2)
-                y_red1 = int(y1 + h1 / 2)
-                cv2.circle(frame, (x_red1, y_red1), 3, (0, 0, 255), -1)
-                try:
-                    cv2.line(frame, (x_hook, y_hook), (x_red1, y_red1), (0, 0, 255), 2)
-                except NameError:
-                    pass
-                cv2.putText(frame, "red bar count: " + str(len(frame_red_bar) - 99), (10, 72), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255))
-
-
-        countours2 = cv2.findContours(green_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[0]
-        y_green_flag = 0
-        
-        for contour in countours2:
-            area3 = cv2.contourArea(contour)
-            if area3 > 500:
-                x2, y2, w2, h2 = cv2.boundingRect(contour)
-                frame_green = cv2.rectangle(frame, (x2, y2), (x2 + w2, y2 + h2), (0, 255, 0), 2)
-
-                x_green = int(x2 + w2 / 2)
-                y_green = int(y2 + h2 / 2)
-
-                cv2.circle(frame, (x_green, y_green), 3, (0, 255, 0), -1)
-                cv2.putText(frame, "green bar", (x2 + w2, y2 + h2), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0))
-                cv2.putText(frame, "green bar count: " + str(len(countours2)), (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0))
-
-                try:
-                    cv2.line(frame, (x_hook, y_hook), (x_green, y_green), (0, 255, 0), 2)
-
-                except NameError:
-                    pass
-
-        for contour in countours:
-            area2 = cv2.contourArea(contour)
-            if 600 > area2 > 100:
-                x1, y1, w1, h1 = cv2.boundingRect(contour)
-                frame_red = cv2.rectangle(frame, (x1, y1), (x1 + w1, y1 + h1), (0, 34, 255), 2)
-                x_hook = int(x1 + w1 / 2)
-                y_hook = int(y1 + h1 / 2)
-                cv2.circle(frame, (x_hook, y_hook), 3, (0, 34, 255), -1)
-                cv2.putText(frame, "hook", (x1 + w1, y1 + h1), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 34, 255))
-
-                try:
-                    print("check distance")
-                    distance = int(np.sqrt((x_hook - x_red1) ** 2 + (y_hook - y_red1) ** 2))
-                    distance2 = int(np.sqrt((x_hook - x_green) ** 2 + (y_hook - y_green) ** 2))
-                    if not np.array_equal(frame_red, frame_green) and distance > 65:
-                        cv2.putText(frame,"red: " + str(distance),(10, 40),cv2.FONT_HERSHEY_SIMPLEX,0.7,(0, 0, 255),)
-                        if x_green > x_hook and (x_hook < x_red1):
-                            if x_green > x_hook:
-                                cv2.putText( frame, "red: " + str(distance), (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255))
-                            print("try click")
-                            self.fisher.mouse.press(mouse.Button.left)
-                            print("press click")
-
-                        elif x_green < x_hook and (x_hook > x_red1) and distance > 65:
-                            if x_green < x_red1:
-                                cv2.putText( frame, "red: " + str(distance), (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255))
-                            print("try click")
-                            self.fisher.mouse.release(mouse.Button.left)
-                            print("release click")
-
-                    else:
-                        cv2.putText(frame, "green: " + str(distance2), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0))
-                        if distance2 <= 7 or x_hook > x_green and x1 > x2:
-                            print("try click")
-                            self.fisher.mouse.release(mouse.Button.left)
-                            print("release click")
-
-                        elif x_hook < x_green and distance2 > 7 and x1 < x2:
-                            print("try click")                            
-                            self.fisher.mouse.press(mouse.Button.left)
-                            print("press click")
-
-                except Exception as e: 
-                    print(e)
-                    traceback.print_exc()
-
-
-        countours2 = cv2.findContours(green_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)[0]
-        y_green_flag = 0
-        for contour in countours2:
-            area3 = cv2.contourArea(contour)
-            if area3 > 500:
-                x2, y2, w2, h2 = cv2.boundingRect(contour)
-                frame_green = cv2.rectangle(frame, (x2, y2), (x2 + w2, y2 + h2), (0, 255, 0), 2)
-
-                x_green = int(x2 + w2 / 2)
-                y_green = int(y2 + h2 / 2)
-
-                cv2.circle(frame, (x_green, y_green), 3, (0, 255, 0), -1)
-                cv2.putText(frame, "green bar", (x2 + w2, y2 + h2), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0))
-                cv2.putText(frame, "green bar count: " + str(len(countours2)), (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0))
-
-                try:
-                    cv2.line(frame, (x_hook, y_hook), (x_green, y_green), (0, 255, 0), 2)
-
-                except NameError:
-                    pass
-        # try:
-        #     if np.array_equal(frame_red, frame_green):
-        #         cv2.putText(frame, f"hooked", (320, 90), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0))
-        #     else:
-        #         cv2.putText(frame, f"not hooked", (320, 90), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255))
-        # except NameError:
-        #     cv2.putText(frame, "not hooked", (320, 90), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255))
+        self.center_hook(hook, green_bar, red_bar)
 
         cv2.imshow("main", frame)
-        # cv2.setWindowProperty("main", cv2.WND_PROP_TOPMOST, 1)
+
+        
+    def center_hook(self, hook : Rect, green_bar : Rect, red_bar : Rect):
+        if hook is None:
+            cv2utils.print_rate_limit("No hook areas", .5)
+
+        elif green_bar is not None:
+            cv2utils.print_rate_limit("Green bar found", .5)
+
+            if self.last_bar == "red":
+                self.mousePressed = None
+            self.last_bar = "green"
+
+            self.center_hook_in_bars(green_bar, hook, "green")
+        elif red_bar is not None:
+            cv2utils.print_rate_limit("Red bar found", .5)
+
+            if self.last_bar == "green":
+                self.mousePressed = None
+            self.last_bar = "red"
+
+            self.center_hook_in_bars(red_bar, hook, "red")
+
+    def draw_rect(self, image, rect : Rect, name : str, color : tuple = (0,0,0)):
+        if rect is None:
+            return
+
+        cv2.rectangle(image, rect.min, rect.max, color, 2)
+        cv2.circle(image, rect.center.as_tuple(), 3, color, 2)
+        cv2.putText(image, name, rect.max, cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
+
+    def center_hook_in_bars(self, bar: Rect, hook : Rect, bar_name : str = ""):
+
+        if bar is None or hook is None:
+            return
+
+        dir_to_bar = bar.center - hook.center
+        
+        if dir_to_bar.x > 0 and not self.mousePressed:
+            self.mousePressed = True
+            self.fisher.mouse.press(mouse.Button.left)
+            print(f"{bar_name} --> hook, pressing mouse: {dir_to_bar.magnitude()}")
+
+        if dir_to_bar.x < 0 and (self.mousePressed or self.mousePressed == None):
+            self.mousePressed = False
+            self.fisher.mouse.release(mouse.Button.left)
+            print(f"hook --> {bar_name}, releasing mouse: {dir_to_bar.magnitude()}")
 
 
 # Test our classes and functions
