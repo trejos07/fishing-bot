@@ -16,6 +16,7 @@ class Fisher(BotBase):
         super().__init__()
         
         self.bar_area = None
+        self.progress_bar_area = None
         self.bar_top = 0
         self.bar_left = 0
 
@@ -28,6 +29,9 @@ class Fisher(BotBase):
         
         # Adding spot to update sell thresholds!
         self.sell_threshold = .6
+
+        self.behaviors.append(FishingBehavior(self, True))
+        self.behaviors.append(FishingBarBehavior(self, False))
 
         print("Fisher initialized, trying to find bar")
         self.try_search_bar()
@@ -51,8 +55,14 @@ class Fisher(BotBase):
             return False
 
         self.bar_area = found_areas[0]
+        self.progress_bar_area = self.bar_area.copy()
+
         self.bar_area.expand(50, 16)
         self.bar_area.position.y -= 4
+        
+        self.progress_bar_area.position.y -= 44
+        self.progress_bar_area.size.y = 28
+        self.progress_bar_area.expand(4,0)
 
         return True
 
@@ -159,13 +169,12 @@ class FishingBarBehavior(Behavior):
     
     def awake(self):
         cv2utils.init_window("main", (800, 100), (-800, 0))
-        cv2utils.init_window("red", (800, 100), (-1600, 0))
-        cv2utils.init_window("green", (800, 100), (-1600, 130))
+        cv2utils.init_window("progress", (800, 100), (-1600, 0))
+
 
     def dispose(self):
         cv2utils.destroy_window("main")
-        cv2utils.destroy_window("red")
-        cv2utils.destroy_window("green")
+        cv2utils.destroy_window("progress")
 
     def update(self):
         scr = self.fisher.screenshot(*self.fisher.bar_area.position, *self.fisher.bar_area.size)
@@ -177,6 +186,8 @@ class FishingBarBehavior(Behavior):
             cv2.imshow("main", frame)
             return
 
+        self.check_progress()
+
         # check if is in a valid state
         if self.fisher.fish_count >= self.fisher.fish_limit:
             print("fish count reached limit")
@@ -186,28 +197,13 @@ class FishingBarBehavior(Behavior):
         red_mask = cv2utils.get_color_mask(hsvframe, (0, 150, 150), (10, 255, 255))
         green_mask = cv2utils.get_color_mask(hsvframe, (40, 200, 150), (70, 255, 255))
 
-        kernal = np.ones((5, 5), "uint8")
-        red_mask = cv2.dilate(red_mask, kernal)
-        green_mask = cv2.dilate(green_mask, kernal)
+        kernel = np.ones((5, 5), "uint8")
+        red_mask = cv2.dilate(red_mask, kernel)
+        green_mask = cv2.dilate(green_mask, kernel)
 
-        # print("showing masks")
-        cv2.imshow("red", red_mask)
-        cv2.imshow("green", green_mask)
-
-        hook_areas = cv2utils.find_area(red_mask, 100, 700)
-        green_areas = cv2utils.find_area(green_mask, 500)
-        red_areas = cv2utils.find_area(red_mask, 900)
-
-        # for g_area in green_areas:
-        #     self.draw_rect(frame, g_area, "green", (0, 255, 0))
-        # for r_area in red_areas:
-        #     self.draw_rect(frame, r_area, "red", (0, 0, 255))
-        # for h_area in hook_areas:
-        #     self.draw_rect(frame, h_area, "hook", (255, 0, 255))
-
-        hook = Rect.combine_rect_list(hook_areas) if hook_areas else None
-        green_bar = Rect.combine_rect_list(green_areas) if green_areas else None
-        red_bar = Rect.combine_rect_list(red_areas) if red_areas else None
+        hook = Rect.combine_rect_list(cv2utils.find_area(red_mask, 100, 700))
+        red_bar = Rect.combine_rect_list(cv2utils.find_area(red_mask, 900))
+        green_bar = Rect.combine_rect_list(cv2utils.find_area(green_mask, 500))
 
         self.draw_rect(frame, hook, "hook", (255, 0, 255))
         self.draw_rect(frame, red_bar, "red", (0, 0, 255))
@@ -217,13 +213,29 @@ class FishingBarBehavior(Behavior):
 
         cv2.imshow("main", frame)
 
+    def check_progress(self):
+        scr = self.fisher.screenshot(*self.fisher.progress_bar_area.position, *self.fisher.progress_bar_area.size)
+        frame = np.array(scr)
+        hsvframe = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+        bar_mask = cv2utils.get_color_mask(hsvframe, (80, 180, 65), (140, 255, 120))
+        progress = Rect.combine_rect_list(cv2utils.find_area(bar_mask, 100))
         
+        if progress is None:
+            cv2.putText(frame, "No progress", (0, 0), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+        else:
+            self.draw_rect(frame, progress, "progress", (0, 255, 0))
+            print(f"Progress: {progress.size.x}")
+        
+        cv2.imshow("progress", bar_mask)
+
     def center_hook(self, hook : Rect, green_bar : Rect, red_bar : Rect):
         if hook is None:
-            cv2utils.print_rate_limit("No hook areas", .5)
+            # cv2utils.print_rate_limit("No hook areas", .5)
+            pass
 
         elif green_bar is not None:
-            cv2utils.print_rate_limit("Green bar found", .5)
+            # cv2utils.print_rate_limit("Green bar found", .5)
 
             if self.last_bar == "red":
                 self.mousePressed = None
@@ -231,21 +243,13 @@ class FishingBarBehavior(Behavior):
 
             self.center_hook_in_bars(green_bar, hook, "green")
         elif red_bar is not None:
-            cv2utils.print_rate_limit("Red bar found", .5)
+            # cv2utils.print_rate_limit("Red bar found", .5)
 
             if self.last_bar == "green":
                 self.mousePressed = None
             self.last_bar = "red"
 
             self.center_hook_in_bars(red_bar, hook, "red")
-
-    def draw_rect(self, image, rect : Rect, name : str, color : tuple = (0,0,0)):
-        if rect is None:
-            return
-
-        cv2.rectangle(image, rect.min, rect.max, color, 2)
-        cv2.circle(image, rect.center.as_tuple(), 3, color, 2)
-        cv2.putText(image, name, rect.max, cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
 
     def center_hook_in_bars(self, bar: Rect, hook : Rect, bar_name : str = ""):
 
@@ -263,6 +267,14 @@ class FishingBarBehavior(Behavior):
             self.mousePressed = False
             self.fisher.mouse.release(mouse.Button.left)
             print(f"hook --> {bar_name}, releasing mouse: {dir_to_bar.magnitude()}")
+
+    def draw_rect(self, image, rect : Rect, name : str, color : tuple = (0,0,0)):
+        if rect is None:
+            return
+
+        cv2.rectangle(image, rect.min, rect.max, color, 2)
+        cv2.circle(image, rect.center.as_tuple(), 3, color, 2)
+        cv2.putText(image, name, rect.max, cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
 
 
 # Test our classes and functions

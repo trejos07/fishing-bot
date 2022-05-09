@@ -10,6 +10,13 @@ def init_window(window_name, size, position = (0, 0)):
 	cv2.moveWindow(window_name, position[0], position[1])
 	cv2.setWindowProperty(window_name, cv2.WND_PROP_TOPMOST, 1)
 
+def get_rect(image, rect: Rect):
+
+	if rect and rect.min.x > 0 and rect.min.y > 0 and rect.max.x < image.shape[1] and rect.max.y < image.shape[0]:
+		return image[rect.position.y : rect.position.y + rect.size.y, rect.position.x : rect.position.x + rect.size.x]
+		
+	return None
+
 def get_color_mask(img, lower, upper):
 	lower_bound = np.array(lower, np.uint8)
 	upper_bound = np.array(upper, np.uint8)

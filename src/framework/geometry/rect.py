@@ -67,6 +67,10 @@ class Vector2():
 		return np.degrees(self.angle(other))
 	def magnitude(self):
 		return np.sqrt(self.x**2 + self.y**2)
+	def min(self, other):
+		return Vector2(min(self.x, other.x), min(self.y, other.y))
+	def max(self, other):
+		return Vector2(max(self.x, other.x), max(self.y, other.y))
 
 	def as_tuple(self):
 		return (self.x, self.y)
@@ -101,19 +105,31 @@ class Rect():
 		self.size += Vector2(x, y) * 2
 
 	def encapsulate(self, other):
-		new_pos = min(self.position, other.position)
-		self.size = max(self.max, other.max) - new_pos
+		new_pos = Vector2.min(self.position, other.position)
+		self.size = Vector2.max(self.max, other.max) - new_pos
 		self.position = new_pos
+	
+	@property
+	def area(self):
+		return self.size.x * self.size.y
 
 	@classmethod
 	def combine_rect_list(cls, rect_list : list):
 		if rect_list is None or len(rect_list) == 0:
 			return None
 
-		rect_min = min([r.min for r in rect_list])
-		rect_max = max([r.max for r in rect_list])
+		rect = rect_list[0]
+		
+		for r in rect_list[1:]:
+			rect.encapsulate(r)
 
-		return Rect(*rect_min, *rect_max)
+		return rect
 
 	def __str__(self):
 		return f"{{position: {self.position}, size: {self.size}}}"
+
+	def __repr__(self):
+		return f"Rect(*{self.position}, *{self.size})"
+
+	def copy(self):
+		return eval(repr(self))
