@@ -24,13 +24,14 @@ class Fisher(BotBase):
         self.fish_count = 0
         self.fish_limit = 16
         self.fish_on_line = False
+        self.fish_caught = False
         
         self.keep_fishing = True
         
         # Adding spot to update sell thresholds!
         self.sell_threshold = .6
 
-        self.behaviors.append(FishingBehavior(self, True))
+        self.behaviors.append(FishingBehavior(fisher = self, run_new_thread = True))
         self.behaviors.append(FishingBarBehavior(self, False))
 
         print("Fisher initialized, trying to find bar")
@@ -75,22 +76,20 @@ class Fisher(BotBase):
         time.sleep(.33)
         self.click_location(left + jitter[0], top + jitter[1], 2 * force - cast_jitter )
 
-    def throw_line_and_wait_bite(self, min_wait = 13, timeout = 20):
+    def throw_line_and_wait_bite(self, min_wait = 8, timeout = 32):
         self.throw_line()
-        print("waiting minimun bite time")
+        print("waiting minimum bite time")
         time.sleep(min_wait)
-        print("start checking for fish to the bait")
+        print("start checking for fish bait")
 
         return self.try_execute(self.try_catch_fish, timeout = timeout)
 
     def try_catch_fish(self):
-        print("searching for hooked image")
         screenshot = self.screenshot()
         hook_templetes = [self.load_image(name) for name in ["Hooked_1.jpg", "Hooked_2.jpg", "Hooked_3.jpg"]]
         pt, val, template = self.multiple_template_match(hook_templetes, screenshot, .5)
 
         if template is not None:
-            self.fish_on_line = True
             self.click_location(pt[0], pt[1])
             return True
             
@@ -140,21 +139,26 @@ class FishingBehavior(Behavior):
 
     def update(self):
 
-        if self.fisher.fish_on_line and self.fisher.is_bobber():
+        if self.fisher.fish_on_line or self.fisher.is_bobber():
             return
 
-        if self.fisher.close_caught_fish(): # We caught a fish
-            self.fish_on_line = False
-            self.fisher.fish_count += 1
-            print(f"Fish Count: {self.fisher.fish_count}")
+        if self.fisher.fish_caught:
+            time.sleep(3)
+            if self.fisher.try_execute(self.fisher.close_caught_fish, 5):
+                self.fisher.fish_caught = False
+                self.fisher.fish_count += 1
+                print(f"Updated fish count: {self.fisher.fish_count} fishes caught")
+            return
 
         if self.fisher.fish_count >= self.fisher.fish_limit:
-            self.Sell_Fish()
+            self.fisher.sell_fish()
             return
 
         if self.fisher.throw_line_and_wait_bite():
+            self.fisher.fish_on_line = True
             print("Theres a fish on the line!\tWaitting to catch it...")
-            time.sleep(5)
+            time.sleep(2)
+            return
 
         print("No fish on the line, reset line")
         self.fisher.click_location(800, 800, 0)
@@ -166,6 +170,7 @@ class FishingBarBehavior(Behavior):
         self.fisher : Fisher = fisher
         self.mousePressed = None
         self.last_bar = None
+        self.last_progress = None
     
     def awake(self):
         cv2utils.init_window("main", (800, 100), (-800, 0))
@@ -223,10 +228,21 @@ class FishingBarBehavior(Behavior):
         
         if progress is None:
             cv2.putText(frame, "No progress", (0, 0), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+
+            if self.last_progress is not None:
+                print(f"player LOST the fish, last progress was {self.last_progress}")
+                self.fisher.fish_on_line = False
+
         else:
             self.draw_rect(frame, progress, "progress", (0, 255, 0))
-            print(f"Progress: {progress.size.x}")
+
+            if progress.size.x < 20: 
+                progress = None
+                self.fisher.fish_caught = True
+                self.fisher.fish_on_line = False
+                print("COMPLETED: fish caught")
         
+        self.last_progress = progress
         cv2.imshow("progress", bar_mask)
 
     def center_hook(self, hook : Rect, green_bar : Rect, red_bar : Rect):
@@ -261,12 +277,12 @@ class FishingBarBehavior(Behavior):
         if dir_to_bar.x > 0 and not self.mousePressed:
             self.mousePressed = True
             self.fisher.mouse.press(mouse.Button.left)
-            print(f"{bar_name} --> hook, pressing mouse: {dir_to_bar.magnitude()}")
+            # print(f"{bar_name} --> hook, pressing mouse: {dir_to_bar.magnitude()}")
 
         if dir_to_bar.x < 0 and (self.mousePressed or self.mousePressed == None):
             self.mousePressed = False
             self.fisher.mouse.release(mouse.Button.left)
-            print(f"hook --> {bar_name}, releasing mouse: {dir_to_bar.magnitude()}")
+            # print(f"hook --> {bar_name}, releasing mouse: {dir_to_bar.magnitude()}")
 
     def draw_rect(self, image, rect : Rect, name : str, color : tuple = (0,0,0)):
         if rect is None:

@@ -4,7 +4,7 @@ from framework import EnhancedThread
 
 class Behavior():
     def __init__(self, run_new_thread=False):
-        self.thread = EnhancedThread(target=self.run_on_thread) if run_new_thread else None
+        self.thread = EnhancedThread(target = self.run_on_thread) if run_new_thread else None
         self.awake()
 
     def awake(self):

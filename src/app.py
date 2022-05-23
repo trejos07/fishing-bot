@@ -13,9 +13,6 @@ class App(AppBase):
 			print("bar not found")
 			cls.quit()
 		
-		cls.fisher.behaviors.append(FishingBehavior(cls.fisher, True))
-		cls.fisher.behaviors.append(FishingBarBehavior(cls.fisher, False))
-
 		for behavior in cls.fisher.behaviors:
 			behavior.start()
 

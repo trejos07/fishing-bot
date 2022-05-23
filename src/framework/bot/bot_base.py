@@ -149,9 +149,10 @@ class BotBase():
         self.push_key(keyboard.Key.enter, 0)
 
     def dispose(self):
-        self.stc.close()
         
         for behavior in self.behaviors:
             behavior.stop()
+            behavior.dispose()
         
         self.behaviors = []
+        self.stc.close()
