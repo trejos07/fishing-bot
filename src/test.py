@@ -4,63 +4,48 @@ from mss import mss
 import numpy as np
 from cv2 import cv2
 
-def Template_Match( template, image, threshold, debug=False, debug_wait = True, debug_name = "debug"):
-        result = cv2.matchTemplate(image, template, cv2.TM_CCOEFF_NORMED)
-        _, max_val, _, max_loc = cv2.minMaxLoc(result)
+def template_match(template, image, threshold = 0.9, debug=False, debug_wait = True, debug_name = "debug"):
 
-        if debug:
-            _, w, h = template.shape[::-1]
-            debug_result = image.copy()
+    result = cv2.matchTemplate(image, template, cv2.TM_CCOEFF_NORMED)
+    _, max_val, _, max_loc = cv2.minMaxLoc(result)
 
-            loc = np.where( result >= threshold)
-            for pt in zip(*loc[::-1]):
-                cv2.circle(debug_result, pt, 5, (0,255,255), 2 )
-                cv2.circle(debug_result, (int(pt[0] + w), int(pt[1] + h)), 5, (255,0,255), 3)
-                cv2.rectangle(debug_result, pt, (pt[0] + w, pt[1] + h), (0,0,255), 2)
+    if debug:
+        _, w, h = template.shape[::-1]
+        debug_result = image.copy()
 
-            cv2.imshow(debug_name, debug_result)
-            
-            if debug_wait:
-                cv2.waitKey(0)
+        loc = np.where( result >= threshold)
+        for pt in zip(*loc[::-1]):
+            cv2.circle(debug_result, pt, 5, (0,255,255), 2 )
+            cv2.circle(debug_result, (int(pt[0] + w / 2), int(pt[1] + h / 2)), 5, (255,0,255), 3)
+            cv2.rectangle(debug_result, pt, (pt[0] + w, pt[1] + h), (0,0,255), 2)
 
-        return (max_loc, max_val)
-
-def Template_Match_Multiple(image, templates, threshold, debug=False):
-    for template in templates:
-        pt, val = Template_Match(image, template, threshold, debug, False, f"{template}_debug")
-
-        if debug:
+        cv2.imshow(debug_name, debug_result)
+        
+        if debug_wait:
             cv2.waitKey(0)
 
-        if val > threshold:
-            return pt, val, template
+    return (max_loc, max_val)
+
+def load_image(name):
+
+    path = os.path.join(name)
     
-    return None, None, None
-
-def Load_Template(name):
-    path = os.path.join(os.path.dirname(__file__), 'img', name)
-    cv2.imread(path, cv2.IMREAD_UNCHANGED)
+    print(f"Loading image: {name} from: {path}")
+    image = cv2.imread(path, cv2.IMREAD_UNCHANGED)
+    return image
 
 
-templates = [Load_Template(name) for name in ["Hooked_1.jpg", "Hooked_2.jpg", "Hooked_3.jpg"]]
+template = load_image('D:/Programing/Python/fishing-bot/img/YellowX.jpg')
 
-with mss() as sct:
-    while True:
-        screen_image = sct.grab({
-            'left': 0,
-            'top': 0,
-            'width': 1920,
-            'height': 1080
-        })
+if template is None:
+    print("Template not found")
+    sys.exit(1)
 
-        screen_image = np.array(screen_image)
-        screen_image = cv2.cvtColor(screen_image, cv2.IMREAD_COLOR)
+img = load_image('D:/Programing/Python/fishing-bot/img/yellow_fish_bug.jpg')
 
-        print('try to match')
-        pt, val, template = Template_Match_Multiple(screen_image, templates, 0.5)
-        print(f'result: {pt, val, template}')
+if img is None:
+    print("Image not found")
+    sys.exit(1)
 
-        if cv2.waitKey(1) & 0xFF == ord("q"):
-            print("Quit")
-            cv2.destroyAllWindows()
-            sys.exit()
+template_match(template, img, 0.9, True, True, 'debug')
+

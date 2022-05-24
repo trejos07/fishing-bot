@@ -29,7 +29,12 @@ class Fisher(BotBase):
         self.keep_fishing = True
         
         # Adding spot to update sell thresholds!
-        self.sell_threshold = .6
+        self.sell_threshold = .9
+
+        if self.fish_count >= self.fish_limit:
+            time.sleep(1)
+            print("FISH COUNT IS AT LIMIT")
+            self.sell_fish()
 
         self.behaviors.append(FishingBehavior(fisher = self, run_new_thread = True))
         self.behaviors.append(FishingBarBehavior(self, False))
@@ -109,21 +114,26 @@ class Fisher(BotBase):
         return max_val > .9
 
     def close_caught_fish(self):
-        return self.click_template("YellowX.jpg", .9)
+        return self.click_template("YellowX.jpg", .9, wait = 0, duration = 0, debug=True)
 
     def sell_fish(self):
 
         self.push_key(keyboard.Key.up, 2) # Get to store if we are not there...
         self.push_key(keyboard.Key.space, .2) # open store
 
-        if self.click_template("SellBox.jpg", self.sell_threshold, .6):
+        if self.try_execute(lambda: self.click_template("SellBox.jpg", self.sell_threshold, wait = 0.5, duration = 0.1), timeout = 5):
             print("Looking to for sell")
-
-            if self.click_template("SellFor.jpg", self.sell_threshold, .6):
-
+            if self.try_execute(lambda: self.click_template("SellFor.jpg", self.sell_threshold, wait = 0.5, duration = 0.1), timeout = 5):
                 print("Looking to for sell Green")
-                if self.click_template("Sell.jpg", self.sell_threshold, 0, (100, 0)):
+                if self.try_execute(lambda: self.click_template("Sell.jpg", self.sell_threshold, wait = 0.5, duration = 0.1, offset = (100, 0)), timeout = 5):
                     self.fish_count = 0
+                    print("COMPLETED: Sell fish")
+                else:
+                    print("Could not find sell button")
+            else:
+                print("Could not find sell X button")
+        else:
+            print("Could not find sell box")
                     
         self.click_location(200,500) # Close store
         time.sleep(.5)
@@ -143,7 +153,7 @@ class FishingBehavior(Behavior):
             return
 
         if self.fisher.fish_caught:
-            time.sleep(3)
+            time.sleep(4)
             if self.fisher.try_execute(self.fisher.close_caught_fish, 5):
                 self.fisher.fish_caught = False
                 self.fisher.fish_count += 1
@@ -175,11 +185,13 @@ class FishingBarBehavior(Behavior):
     def awake(self):
         cv2utils.init_window("main", (800, 100), (-800, 0))
         cv2utils.init_window("progress", (800, 100), (-1600, 0))
+        # cv2utils.init_window("debug", (1200, 600), (-1920, 100))
 
 
     def dispose(self):
         cv2utils.destroy_window("main")
         cv2utils.destroy_window("progress")
+        # cv2utils.destroy_window("debug")
 
     def update(self):
         scr = self.fisher.screenshot(*self.fisher.bar_area.position, *self.fisher.bar_area.size)
@@ -230,18 +242,17 @@ class FishingBarBehavior(Behavior):
             cv2.putText(frame, "No progress", (0, 0), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
             if self.last_progress is not None:
-                print(f"player LOST the fish, last progress was {self.last_progress}")
+                
                 self.fisher.fish_on_line = False
-
+                if self.last_progress.size.x < 20: 
+                    progress = None
+                    self.fisher.fish_caught = True
+                    print("COMPLETED: fish caught")
+                else:
+                    print(f"FAILED: player LOST the fish, last progress was {self.last_progress}")
         else:
             self.draw_rect(frame, progress, "progress", (0, 255, 0))
 
-            if progress.size.x < 20: 
-                progress = None
-                self.fisher.fish_caught = True
-                self.fisher.fish_on_line = False
-                print("COMPLETED: fish caught")
-        
         self.last_progress = progress
         cv2.imshow("progress", bar_mask)
 

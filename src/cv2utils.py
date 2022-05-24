@@ -10,6 +10,9 @@ def init_window(window_name, size, position = (0, 0)):
 	cv2.moveWindow(window_name, position[0], position[1])
 	cv2.setWindowProperty(window_name, cv2.WND_PROP_TOPMOST, 1)
 
+def destroy_window(window_name):
+	cv2.destroyWindow(window_name)
+
 def get_rect(image, rect: Rect):
 
 	if rect and rect.min.x > 0 and rect.min.y > 0 and rect.max.x < image.shape[1] and rect.max.y < image.shape[0]:

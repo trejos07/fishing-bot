@@ -34,7 +34,7 @@ class BotBase():
 
         return img
 
-    def click_template(self, template_name : str, threshold : float, wait : float = .2, offset = None, debug = False) -> bool:
+    def click_template(self, template_name : str, threshold : float, wait : float = .2, duration = 0, offset = None, debug = False) -> bool:
         template = self.load_image(template_name)
 
         if template is None:
@@ -54,7 +54,7 @@ class BotBase():
                 position_x += offset[0]
                 position_y += offset[1]
 
-            self.click_location(position_x, position_y)
+            self.click_location(position_x, position_y, duration)
             time.sleep(wait)
             return True
  
@@ -111,6 +111,7 @@ class BotBase():
 
     def click_location(self, x, y, duration = 0, button = mouse.Button.left):
         self.mouse.position = (x, y)
+        time.sleep(.01)
         self.mouse.press(button)
         time.sleep(duration)
         self.mouse.release(button)
@@ -129,7 +130,7 @@ class BotBase():
         for key in keys:   
             self.keyboard.release(key)
     
-    def try_execute(self, command : Callable[[], bool], timeout = 1) -> bool:
+    def try_execute(self, command : Callable[[], bool], timeout = 1, update_rate = 0.05) -> bool:
         if timeout <= 0:
             return
         
@@ -140,6 +141,8 @@ class BotBase():
 
             if result:
                 return True
+
+            time.sleep(update_rate)
 
         return False
 
