@@ -111,7 +111,7 @@ class BotBase():
 
     def click_location(self, x, y, duration = 0, button = mouse.Button.left):
         self.mouse.position = (x, y)
-        time.sleep(.01)
+        time.sleep(.05)
         self.mouse.press(button)
         time.sleep(duration)
         self.mouse.release(button)

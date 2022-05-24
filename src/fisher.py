@@ -31,10 +31,10 @@ class Fisher(BotBase):
         # Adding spot to update sell thresholds!
         self.sell_threshold = .9
 
-        if self.fish_count >= self.fish_limit:
-            time.sleep(1)
-            print("FISH COUNT IS AT LIMIT")
-            self.sell_fish()
+        self.sell_fish()
+        # if self.fish_count >= self.fish_limit:
+        #     time.sleep(1)
+        #     print("FISH COUNT IS AT LIMIT")
 
         self.behaviors.append(FishingBehavior(fisher = self, run_new_thread = True))
         self.behaviors.append(FishingBarBehavior(self, False))
@@ -114,7 +114,12 @@ class Fisher(BotBase):
         return max_val > .9
 
     def close_caught_fish(self):
-        return self.click_template("YellowX.jpg", .9, wait = 0, duration = 0, debug=True)
+        if self.click_template("YellowX.jpg", .9, wait = 0.5, duration = 0.1): 
+            print("COMPLETED: Close caught fish")
+            return True
+
+        print("FAILED: Close caught fish")
+        return False
 
     def sell_fish(self):
 
@@ -153,7 +158,7 @@ class FishingBehavior(Behavior):
             return
 
         if self.fisher.fish_caught:
-            time.sleep(4)
+            time.sleep(2)
             if self.fisher.try_execute(self.fisher.close_caught_fish, 5):
                 self.fisher.fish_caught = False
                 self.fisher.fish_count += 1
@@ -205,6 +210,10 @@ class FishingBarBehavior(Behavior):
 
         self.check_progress()
 
+        if self.fisher.fish_caught:
+            cv2.imshow("main", frame)
+            return
+
         # check if is in a valid state
         if self.fisher.fish_count >= self.fisher.fish_limit:
             print("fish count reached limit")
@@ -244,6 +253,10 @@ class FishingBarBehavior(Behavior):
             if self.last_progress is not None:
                 
                 self.fisher.fish_on_line = False
+                self.mousePressed = None
+                self.fisher.mouse.press(mouse.Button.left)
+                self.fisher.mouse.release(mouse.Button.left)
+
                 if self.last_progress.size.x < 20: 
                     progress = None
                     self.fisher.fish_caught = True
