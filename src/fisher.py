@@ -31,7 +31,7 @@ class Fisher(BotBase):
         # Adding spot to update sell thresholds!
         self.sell_threshold = .9
 
-        self.sell_fish()
+        # self.sell_fish()
         # if self.fish_count >= self.fish_limit:
         #     time.sleep(1)
         #     print("FISH COUNT IS AT LIMIT")
@@ -63,10 +63,9 @@ class Fisher(BotBase):
         self.bar_area = found_areas[0]
         self.progress_bar_area = self.bar_area.copy()
 
-        self.bar_area.expand(50, 16)
-        self.bar_area.position.y -= 4
+        self.bar_area.expand(10, 4)
         
-        self.progress_bar_area.position.y -= 44
+        self.progress_bar_area.position.y -= 46
         self.progress_bar_area.size.y = 28
         self.progress_bar_area.expand(4,0)
 
