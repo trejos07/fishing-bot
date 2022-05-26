@@ -1,7 +1,8 @@
 import uuid
 import itertools
-from src.framework.behavior_tree.core.nodes.node_types import NodeType
-from src.framework.behavior_tree.core.tick import Tick
+from framework.behavior_tree.core.nodes.node_types import NodeType
+from framework.behavior_tree.core.tick import Tick
+from framework.behavior_tree.core.blackboard import Blackboard
 
 __all__ = ['BehaviorTree']
 
@@ -104,7 +105,7 @@ class BehaviorTree(object):
         return data
 
 
-    def tick(self, target, blackboard):
+    def tick(self, target, blackboard : Blackboard):
 
         # Create the TICK object
         tick = Tick()
@@ -121,7 +122,7 @@ class BehaviorTree(object):
         curr_open_nodes = tick._open_nodes
 
         start = 0
-        for node1, node2 in itertools.izip(last_open_nodes, curr_open_nodes):
+        for node1, node2 in zip(last_open_nodes, curr_open_nodes):
             start += 1
             if node1 != node2:
                 break

@@ -1,5 +1,5 @@
-from src.framework.behavior_tree.core.nodes.composite import Composite
-from src.framework.behavior_tree.core.nodes.node_state import NodeState
+from framework.behavior_tree.core.nodes.composite import Composite
+from framework.behavior_tree.core.nodes.node_state import NodeState
 
 __all__ = ['MemSequence']
 

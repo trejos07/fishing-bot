@@ -1,5 +1,5 @@
 import uuid
-from src.framework.behavior_tree.core.nodes.node_state import NodeState
+from framework.behavior_tree.core.nodes.node_state import NodeState
 
 class Node(object):
     title = None
