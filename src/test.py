@@ -35,7 +35,7 @@ def load_image(name):
     return image
 
 
-template = load_image('D:/Programing/Python/fishing-bot/img/YellowX.jpg')
+template = load_image('D:/Programing/Python/fishing-bot/img/sellcoin.jpg')
 
 if template is None:
     print("Template not found")
@@ -47,5 +47,5 @@ if img is None:
     print("Image not found")
     sys.exit(1)
 
-template_match(template, img, 0.9, True, True, 'debug')
+template_match(template, img, 0., True, True, 'debug')
 
