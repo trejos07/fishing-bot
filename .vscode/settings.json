@@ -5,5 +5,8 @@
         "**/*.pyo": true,
         "**/*.pyd": true,
         "**/*.py~": true,
-    }
+    },
+    "cSpell.words": [
+        "izip"
+    ]
 }

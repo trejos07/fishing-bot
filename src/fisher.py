@@ -31,7 +31,7 @@ class Fisher(BotBase):
         # Adding spot to update sell thresholds!
         self.sell_threshold = .9
 
-        # self.sell_fish()
+        self.sell_fish()
         # if self.fish_count >= self.fish_limit:
         #     time.sleep(1)
         #     print("FISH COUNT IS AT LIMIT")
@@ -262,6 +262,7 @@ class FishingBarBehavior(Behavior):
                     print("COMPLETED: fish caught")
                 else:
                     print(f"FAILED: player LOST the fish, last progress was {self.last_progress}")
+                    time.sleep(1)
         else:
             self.draw_rect(frame, progress, "progress", (0, 255, 0))
 
