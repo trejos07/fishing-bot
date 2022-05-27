@@ -1,0 +1,84 @@
+{
+    "version": "0.3.0",
+    "scope": "tree",
+    "id": "a59bacba-9c93-4b92-b74f-bc69c963930d",
+    "title": "Root",
+    "description": "",
+    "root": "482b9639-01d5-4f7f-84b1-5e8271c60693",
+    "properties": {},
+    "nodes": {
+      "482b9639-01d5-4f7f-84b1-5e8271c60693": {
+        "id": "482b9639-01d5-4f7f-84b1-5e8271c60693",
+        "name": "sequence",
+        "title": "MemSequence",
+        "description": "",
+        "properties": {},
+        "display": {
+          "x": -444,
+          "y": -60
+        },
+        "children": [
+          "771409dc-1da8-4b7f-bb60-e8a7baf97730",
+          "5fd974f0-30e1-4639-8838-a07a0a8dffc1",
+          "24ee3348-cb16-4fca-8807-69f2f54cd2cb"
+        ]
+      },
+      "24ee3348-cb16-4fca-8807-69f2f54cd2cb": {
+        "id": "24ee3348-cb16-4fca-8807-69f2f54cd2cb",
+        "name": "wait",
+        "title": "wait",
+        "description": "",
+        "properties": {
+          "time": 5
+        },
+        "display": {
+          "x": -228,
+          "y": 72
+        }
+      },
+      "771409dc-1da8-4b7f-bb60-e8a7baf97730": {
+        "id": "771409dc-1da8-4b7f-bb60-e8a7baf97730",
+        "name": "Logger",
+        "title": "Logger",
+        "description": null,
+        "properties": {
+          "message": "Hello"
+        },
+        "display": {
+          "x": -696,
+          "y": 72
+        }
+      },
+      "5fd974f0-30e1-4639-8838-a07a0a8dffc1": {
+        "id": "5fd974f0-30e1-4639-8838-a07a0a8dffc1",
+        "name": "Logger",
+        "title": "Logger",
+        "description": "",
+        "properties": {
+          "message": "World"
+        },
+        "display": {
+          "x": -456,
+          "y": 72
+        }
+      }
+    },
+    "display": {
+      "camera_x": 1371,
+      "camera_y": 361.5,
+      "camera_z": 1,
+      "x": -444,
+      "y": -180
+    },
+    "custom_nodes": [
+      {
+        "version": "0.3.0",
+        "scope": "node",
+        "name": "Logger",
+        "category": "action",
+        "title": "Logger",
+        "description": null,
+        "properties": {}
+      }
+    ]
+  }

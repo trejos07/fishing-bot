@@ -7,16 +7,15 @@ __all__ = ['Wait']
 class Wait(Action):
 
     def open(self, tick):
-        print("open wait")
-        self.start_time = time.time()
-        self.end_time = self.start_time + self.properties.get('time', 0)
+        end_time = time.perf_counter() + self.properties.get('time', 0)
+        tick.blackboard.set('end_time', end_time, tick.tree.id, self.id)
 
     def tick(self, tick):
-        curr_time = time.time()
-        print(f"tick wait, elapsed time: {curr_time - self.start_time}")
 
-        if (curr_time > self.end_time):
-            print('time out')
+        end_time = tick.blackboard.get('end_time', tick.tree.id, self.id)
+        curr_time = time.perf_counter()
+
+        if (curr_time > end_time):
             return NodeState.SUCCESS
 
         return NodeState.RUNNING

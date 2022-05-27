@@ -117,20 +117,20 @@ class BehaviorTree(object):
         # Tick node
         state = self.root._execute(tick)
 
-        # Close node from last tick, if needed
-        last_open_nodes = blackboard.get('open_nodes', self.id)
-        curr_open_nodes = tick._open_nodes
+        # # Close node from last tick, if needed
+        # last_open_nodes = blackboard.get('open_nodes', self.id)
+        # curr_open_nodes = tick._open_nodes
 
-        start = 0
-        for node1, node2 in zip(last_open_nodes, curr_open_nodes):
-            start += 1
-            if node1 != node2:
-                break
+        # start = 0
+        # for node1, node2 in zip(last_open_nodes, curr_open_nodes):
+        #     start += 1
+        #     if node1 != node2:
+        #         break
 
-        # - close nodes
-        for i in range(len(last_open_nodes)-1, start-1, -1):
-            last_open_nodes[i]._close(tick);
+        # # - close nodes
+        # for i in range(len(last_open_nodes)-1, start-1, -1):
+        #     last_open_nodes[i]._close(tick);
 
         # Populate blackboard
-        blackboard.set('open_nodes', curr_open_nodes, self.id)
+        blackboard.set('open_nodes', tick._open_nodes, self.id)
         blackboard.set('node_count', tick._node_count, self.id)
