@@ -44,7 +44,7 @@ behavior_tree_data = {
             'title': 'Wait',
             'description': '',
             'properties': {
-                'time': 5
+                'time': 10
             }
         }
 

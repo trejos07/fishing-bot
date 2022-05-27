@@ -5,9 +5,11 @@ class Node(object):
     title = None
     category = None
     description = None
+    nextId = 0
 
     def __init__(self):
-        self.id = str(uuid.uuid1())
+        Node.nextId += 1
+        self.id =  Node.nextId #str(uuid.uuid1())
         self.title = self.title or self.__class__.__name__
         self.description = self.description or ''
         self.parameters = {}

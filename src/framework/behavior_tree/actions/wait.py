@@ -7,11 +7,13 @@ __all__ = ['Wait']
 class Wait(Action):
 
     def open(self, tick):
+        print("open wait")
         self.start_time = time.time()
         self.end_time = self.start_time + self.properties.get('time', 0)
 
     def tick(self, tick):
         curr_time = time.time()
+        print(f"tick wait, elapsed time: {curr_time - self.start_time}")
 
         if (curr_time > self.end_time):
             print('time out')
